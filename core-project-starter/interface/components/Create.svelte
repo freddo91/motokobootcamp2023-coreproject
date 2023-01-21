@@ -11,12 +11,17 @@
     if (!dao) {
       return
     }
+    var date = new Date();
+    date.setDate(date.getDate() + 7);
     let p = {
       'name' : summarypayload,
       'vote' : {
          'accept' : 0,
          'reject' : 0
-      }
+      },
+      'state' : true,
+      'startTime' : Date. now(),
+      'endTime' : date.getTime()
     }
     console.log(p)
     console.log(summarypayload)

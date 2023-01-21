@@ -17,3 +17,4 @@ export const hasvoted = writable(false);
 export const principal = writable(null);
 export const daoActor = writable(null);
 export const ledgerActor = writable(null);
+export const neuron = writable(null);
