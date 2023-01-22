@@ -41,6 +41,7 @@ export interface Self {
       { 'Err' : string }
   >,
   'get_proposal' : ActorMethod<[bigint], [] | [Proposal]>,
+  'get_votes' : ActorMethod<[bigint], [] | [Array<Vote>]>,
   'get_voting_power' : ActorMethod<
     [Principal],
     {
@@ -57,9 +58,14 @@ export interface Self {
   >,
   'update_neuron' : ActorMethod<[Principal, Neuron], Neuron>,
   'vote' : ActorMethod<
-    [bigint, boolean],
+    [Principal, bigint, boolean],
     { 'Ok' : [number, number] } |
       { 'Err' : string }
   >,
+}
+export interface Vote {
+  'principal' : Principal,
+  'v_type' : boolean,
+  'v_power' : number,
 }
 export interface _SERVICE extends Self {}

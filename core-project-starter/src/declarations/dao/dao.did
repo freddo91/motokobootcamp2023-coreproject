@@ -1,3 +1,9 @@
+type Vote = 
+ record {
+   "principal": principal;
+   v_power: float64;
+   v_type: bool;
+ };
 type Self = 
  service {
    create_neuron: (principal, int, int) -> (variant {
@@ -23,6 +29,7 @@ type Self =
                                  Ok: Neuron;
                                }) query;
    get_proposal: (nat) -> (opt Proposal) query;
+   get_votes: (nat) -> (opt vec Vote);
    get_voting_power: (principal) ->
     (record {
        age: float64;
@@ -35,13 +42,14 @@ type Self =
                                      Ok: Proposal;
                                    });
    update_neuron: (principal, Neuron) -> (Neuron);
-   vote: (nat, bool) -> (variant {
-                           Err: text;
-                           Ok: record {
-                                 float64;
-                                 float64;
-                               };
-                         });
+   vote: (principal, nat, bool) ->
+    (variant {
+       Err: text;
+       Ok: record {
+             float64;
+             float64;
+           };
+     });
  };
 type Proposal = 
  record {

@@ -7,15 +7,18 @@
 
   let choosenproposal = ""
   let choosenvote = ""
-  let voteid = ""
-  let id = ""
+  let voteid = "1"
+  let id = "1"
 
   async function vote(thisid, votepayload) {
+    if (!principal) {
+      return 
+    }
     let dao = get(daoActor)
     if (!dao || thisid === "") {
       return 
     }
-    let res = await dao.vote(BigInt(thisid), votepayload)
+    let res = await dao.vote(get(principal), BigInt(thisid), votepayload)
     if (res.Ok) {
       return res.Ok
     } else {
@@ -67,7 +70,7 @@
     <img src={mot} class="bg" alt="logo" />
     {#if $proposaltoVote.proposalID === "null"}
       <h1 class="slogan">Please input a proposal ID!</h1>
-      <input
+      <input type="number"
         bind:value={choosenproposal}
         placeholder="Input your proposal ID here"
       />

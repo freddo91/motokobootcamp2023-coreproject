@@ -18,6 +18,11 @@ export const idlFactory = ({ IDL }) => {
     'vote' : IDL.Record({ 'reject' : IDL.Float64, 'accept' : IDL.Float64 }),
     'state' : IDL.Bool,
   });
+  const Vote = IDL.Record({
+    'principal' : IDL.Principal,
+    'v_type' : IDL.Bool,
+    'v_power' : IDL.Float64,
+  });
   const Self = IDL.Service({
     'create_neuron' : IDL.Func(
         [IDL.Principal, IDL.Int, IDL.Int],
@@ -47,6 +52,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'get_proposal' : IDL.Func([IDL.Nat], [IDL.Opt(Proposal)], ['query']),
+    'get_votes' : IDL.Func([IDL.Nat], [IDL.Opt(IDL.Vec(Vote))], []),
     'get_voting_power' : IDL.Func(
         [IDL.Principal],
         [
@@ -66,7 +72,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'update_neuron' : IDL.Func([IDL.Principal, Neuron], [Neuron], []),
     'vote' : IDL.Func(
-        [IDL.Nat, IDL.Bool],
+        [IDL.Principal, IDL.Nat, IDL.Bool],
         [
           IDL.Variant({
             'Ok' : IDL.Tuple(IDL.Float64, IDL.Float64),

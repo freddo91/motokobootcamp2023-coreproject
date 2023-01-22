@@ -4,6 +4,7 @@ import Nat "mo:base/Nat";
 import Float "mo:base/Float";
 import Time "mo:base/Time";
 import Iter "mo:base/Iter";
+import Array "mo:base/Array";
 import Principal "mo:base/Principal";
 
 
@@ -19,8 +20,12 @@ shared actor class Self() = this {
 
     private stable var _proposals : [(Nat, Proposal)] = [];
     private stable var _neurons : [(Principal, Neuron)] = [];
+    private stable var _votes : [(Nat, [Vote])] = [];
     private var proposals : HashMap.HashMap<Nat, Proposal> = HashMap.fromIter<Nat, Proposal>(_proposals.vals(), 0, Nat.equal, Hash.hash);
     private var neurons : HashMap.HashMap<Principal, Neuron> = HashMap.fromIter<Principal, Neuron>(_neurons.vals(), 0, Principal.equal, Principal.hash);
+    private var votes : HashMap.HashMap<Nat, [Vote]> = HashMap.fromIter<Nat, [Vote]>(_votes.vals(), 0, Nat.equal, Hash.hash);
+
+    let webpage : actor { set_title : (Text) -> async ()} = actor("cgtel-uaaaa-aaaak-qbqyq-cai");
 
     public type NeuronStatus = {
         #Locked : {
@@ -45,8 +50,9 @@ shared actor class Self() = this {
         status : NeuronStatus;
     };
     public type Vote = {
-        accept : Nat;
-        reject : Nat;
+        principal : Principal;
+        v_power : Float;
+        v_type : Bool;
     };
     public type Proposal = {
         name : Text;
@@ -62,11 +68,13 @@ shared actor class Self() = this {
     system func preupgrade() {
         _proposals := Iter.toArray(proposals.entries());
         _neurons := Iter.toArray(neurons.entries());
+        _votes := Iter.toArray(votes.entries());
     };
 
     system func postupgrade() {
         _proposals := [];
         _neurons := [];
+        _votes := [];
     };
 
     public shared (msg) func getPrincipal() : async Text {
@@ -186,12 +194,43 @@ shared actor class Self() = this {
         };
     };
 
-    public shared({caller}) func vote(proposal_id : Nat, yes_or_no : Bool) : async {#Ok : (Float, Float); #Err : Text} {
+    public shared(msg) func vote(principal: Principal, proposal_id : Nat, yes_or_no : Bool) : async {#Ok : (Float, Float); #Err : Text} {
+        let caller = getPriorityCaller(msg.caller, principal);
+        if (has_voted(caller, proposal_id)) {
+            return #Err("You only vote 1 time");
+        };
         switch(proposals.get(proposal_id)) {
-            case(?p) {  
+            case(?p) { 
+                if (p.state == false) {
+                    return #Err("Proposal not allow to vote");
+                };
                 let voting_power = voting_power_calculate(caller);
-                let proposal = voting(p, yes_or_no, voting_power);
-                proposals.put(proposal_id, proposal);
+
+                // put vote
+                let vote : Vote = {
+                    principal = caller;
+                    v_power = voting_power;
+                    v_type = yes_or_no;
+                };
+                var vote_arr = [vote];
+                switch(votes.get(proposal_id)) {
+                    case (?v) {
+                        vote_arr := Array.append(v, vote_arr);
+                        votes.put(proposal_id, vote_arr);
+                    };
+                    case (null) {
+                        votes.put(proposal_id, vote_arr);
+                    };
+                };
+
+                let proposal = vote_counting(p, vote_arr);
+                let verified_proposal = verify_proposal_state(proposal);
+                proposals.put(proposal_id, verified_proposal);
+                
+                //
+                if (verified_proposal.vote.accept >= 100 or (verified_proposal.vote.accept >= verified_proposal.vote.reject and (Time.now()/1000000) >= verified_proposal.endTime)) {
+                    await webpage.set_title(p.name);
+                };
                 return #Ok((proposal.vote.accept, proposal.vote.reject));
             };
             case(null) {
@@ -200,29 +239,58 @@ shared actor class Self() = this {
         };
     };
 
-    private func voting(p: Proposal, yes_or_no : Bool, voting_power : Float) : Proposal {
-        if (yes_or_no) {
+    private func has_voted(p: Principal, proposal_id : Nat) : Bool {
+        switch(votes.get(proposal_id)) {
+            case (?v) {
+                for (vote in v.vals()) {
+                    if (vote.principal == p) {
+                        return true;
+                    };
+                };
+                return false;
+            };
+            case (null) {
+                return false;
+            };
+        };
+    };
+
+    private func vote_counting(p: Proposal, votes : [Vote]) : Proposal {
+        var accept : Float = 0;
+        var reject : Float = 0;
+        for (v in votes.vals()) {
+            if (v.v_type) {
+                accept += v.v_power;
+            } else {
+                reject += v.v_power;
+            };
+        };
+        return {
+            name = p.name;
+            vote = {
+                accept = accept;
+                reject = reject;
+            };
+            state = p.state;
+            startTime = p.startTime;
+            endTime = p.endTime;
+        };
+    };
+
+    private func verify_proposal_state(p: Proposal) : Proposal {
+        if (p.vote.accept >= 100 or p.vote.reject >= 100 or (Time.now()/1000000) >= p.endTime) {
             return {
                 name = p.name;
                 vote = {
-                    accept = p.vote.accept + voting_power;
+                    accept = p.vote.accept;
                     reject = p.vote.reject;
                 };
-                state = p.state;
+                state = false;
                 startTime = p.startTime;
                 endTime = p.endTime;
             };
         };
-        return {
-                name = p.name;
-                vote = {
-                    accept = p.vote.accept;
-                    reject = p.vote.reject + voting_power;
-                };
-                state = p.state;
-                startTime = p.startTime;
-                endTime = p.endTime;
-            };
+        return p;        
     };
 
     public shared (msg) func create_neuron(principal: Principal, token_amount : Int, ddelay : Int) : async {#Ok : Neuron; #Err : Text} {
@@ -350,5 +418,9 @@ shared actor class Self() = this {
                 return #Err("Neuron not exist");
             };
         };
+    };
+
+    public func get_votes(proposal_id : Nat) : async ?[Vote] {
+        return votes.get(proposal_id);
     };
 };

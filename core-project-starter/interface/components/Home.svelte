@@ -19,6 +19,8 @@
   let selected;
   let tokens = BigInt(100);
 
+  let promise = getNeuron()
+
   function handleSubmit() {
 		alert(`${selected.id} You staking (${selected.text})"`);
 	}
@@ -31,8 +33,9 @@
     if (!dao) {
       return 
     }
-    let res = await dao.dissolve_neuron(Principal.fromText("2vxsx-fae"))
+    let res = await dao.dissolve_neuron(get(principal))
     console.log(res)
+    promise = getNeuron()
   }
 
   async function getNeuron() {
@@ -44,7 +47,8 @@
     if (!dao) {
       return 
     }
-    let res = await dao.get_neuron(Principal.fromText("2vxsx-fae"))
+    // Principal.fromText("2vxsx-fae")
+    let res = await dao.get_neuron(get(principal))
     console.log(res)
     if (res.Ok) {
       return res.Ok
@@ -68,8 +72,9 @@
     } else {
       dissolve_delay = dissolve_delay * (365 * selected.id)
     }
-    let res = await dao.create_neuron(Principal.fromText("2vxsx-fae"), tokens, dissolve_delay)
+    let res = await dao.create_neuron(get(principal), tokens, dissolve_delay)
     console.log(res)
+    promise = getNeuron()
     return res;
   }
 
@@ -122,8 +127,6 @@
         start: start
       })
     }
-    tokens = total_mint;
-    console.log("token = " + tokens)
     return total_mint;
   }
 
@@ -146,7 +149,7 @@
     <ConnectButton />
 
     {#if $principal}
-        {#await getNeuron()}
+        {#await promise}
         <h1 class="slogan">Loading...</h1>
         {:then res}
         <p style="color: white">
@@ -189,29 +192,26 @@
           {#await getTransactions()}
           <h1 class="slogan">Loading...</h1>
           {:then res1}
-          <!-- <button on:click={() => createNeuron()}> Create newron </button> -->
             <form on:submit|preventDefault={createNeuron} style="background-color: yellowgreen;">
               <div>
-                <center><a>Create Neuron</a></center>
+                <fieldset>
+                  <legend>Create Neuron</legend>
+                  <table style="border:1px">
+                      <tr>
+                        <td>Token amount:</td><td><input type="number" bind:value={tokens}></td>
+                      </tr>
+                      <tr>
+                        <td>Period</td><td><select bind:value={selected} on:change="{() => tokens = 0}">
+                          {#each periods as period}
+                            <option value={period}>
+                              {period.text}
+                            </option>
+                          {/each}
+                        </select></td>
+                      </tr>
+                  </table>
+                </fieldset>
                 <div>
-                  <div>
-                    <a>Token amount</a>
-                    <input type="number" bind:value={tokens}>
-                  </div>
-                  <div>
-                    <a>Period</a>
-                    <select bind:value={selected} on:change="{() => tokens = 0}">
-                      {#each periods as period}
-                        <option value={period}>
-                          {period.text}
-                        </option>
-                      {/each}
-                    </select>
-                  </div>
-                  <!-- <div class="card-cvv">
-                    <a>CVV:</a>
-                    <input id="cardcvv" autocomplete="***" maxlength="4">
-                  </div> -->
                   <button disabled={tokens === 0} type=submit>
                     <span>Create newron</span>
                   </button>

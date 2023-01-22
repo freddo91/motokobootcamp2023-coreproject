@@ -6,7 +6,7 @@ import { HttpAgent, Actor } from "@dfinity/agent"
 
 //TODO : Add your mainnet id whenever you have deployed on the IC
 const daoCanisterId = 
-  process.env.NODE_ENV === "development" ? "rno2w-sqaaa-aaaaa-aaacq-cai" : "rvpd5-iqaaa-aaaaj-qazsa-cai"
+  process.env.NODE_ENV === "development" ? "rno2w-sqaaa-aaaaa-aaacq-cai" : "uyc5q-dqaaa-aaaak-aaima-cai"
 
 const ledgerCanisterId = 
   process.env.NODE_ENV === "development" ? "db3eq-6iaaa-aaaah-abz6a-cai" : "db3eq-6iaaa-aaaah-abz6a-cai"
