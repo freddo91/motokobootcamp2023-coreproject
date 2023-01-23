@@ -48,7 +48,6 @@
     // console.log(params)
     sendTokenState = true
     let res = await ledger.icrc1_transfer(params)
-    sendTokenState = false
     // console.log(res)
     if (res.ok) {
       return res.ok
@@ -114,6 +113,7 @@
       dissolve_delay = dissolve_delay * (365 * selected.id)
     }
     let res = await dao.create_neuron(get(principal), tokens, dissolve_delay)
+    sendTokenState = false
     console.log(res)
     promise = getNeuron()
     return res;
@@ -183,6 +183,23 @@
     }
     return "Dissolved"
   }
+
+  function dissolveDelayToDateFmt(dissolve_delay) {
+    let y = dissolve_delay / BigInt(24 * 60 * 60 * 1000) / BigInt(365);
+    let m = dissolve_delay / BigInt(24 * 60 * 60 * 1000) % BigInt(365);
+    return y + (y > 1 ? " years " : " year ") + m + (m > 1 ? " months" : " month")
+  }
+
+  function getDateTime(time) {
+    var date = new Date(Number(time))
+    let formattedTime = date.getDate()+
+          "/"+(date.getMonth()+1)+
+          "/"+date.getFullYear()+
+          " "+date.getHours()+
+          ":"+date.getMinutes()+
+          ":"+date.getSeconds();
+    return formattedTime
+  }
 </script>
 
 <div>
@@ -211,10 +228,10 @@
                     <td>Token amount:</td><td>{res.token_staking}</td>
                   </tr>
                   <tr>
-                    <td>Dissolve Delay:</td><td>{res.dissolve_delay}</td>
+                    <td>Dissolve Delay:</td><td>{dissolveDelayToDateFmt(res.dissolve_delay)}</td>
                   </tr>
                   <tr>
-                    <td>Create time:</td><td>{res.createTime}</td>
+                    <td>Create time:</td><td>{getDateTime(res.createTime)}</td>
                   </tr>
                   
                   <tr>
