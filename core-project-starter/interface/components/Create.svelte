@@ -21,7 +21,9 @@
       },
       'state' : true,
       'startTime' : Date. now(),
-      'endTime' : date.getTime()
+      'endTime' : date.getTime(),
+      'minTokenRequire' : 1,
+      'votingPowerToPass' : 100
     }
     console.log(p)
     console.log(summarypayload)

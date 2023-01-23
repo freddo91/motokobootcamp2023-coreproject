@@ -14,11 +14,13 @@ export type NeuronStatus = {
   { 'Locked' : { 'dissolve_delay' : bigint, 'time' : bigint } } |
   { 'Dissolving' : { 'dissolve_delay' : bigint, 'time' : bigint } };
 export interface Proposal {
+  'votingPowerToPass' : number,
   'startTime' : bigint,
   'endTime' : bigint,
   'name' : string,
   'vote' : { 'reject' : number, 'accept' : number },
   'state' : boolean,
+  'minTokenRequire' : bigint,
 }
 export interface Self {
   'create_neuron' : ActorMethod<
@@ -51,11 +53,17 @@ export interface Self {
       'token_num' : number,
     }
   >,
+  'modify_parameters' : ActorMethod<
+    [bigint, bigint, number],
+    { 'Ok' : Proposal } |
+      { 'Err' : string }
+  >,
   'submit_proposal' : ActorMethod<
     [Proposal],
     { 'Ok' : Proposal } |
       { 'Err' : string }
   >,
+  'switchQuadraticMode' : ActorMethod<[], boolean>,
   'update_neuron' : ActorMethod<[Principal, Neuron], Neuron>,
   'vote' : ActorMethod<
     [Principal, bigint, boolean],

@@ -37,10 +37,16 @@ type Self =
        token_num: float64;
        vote_power: float64;
      }) query;
+   modify_parameters: (nat, nat, float64) ->
+    (variant {
+       Err: text;
+       Ok: Proposal;
+     });
    submit_proposal: (Proposal) -> (variant {
                                      Err: text;
                                      Ok: Proposal;
                                    });
+   switchQuadraticMode: () -> (bool);
    update_neuron: (principal, Neuron) -> (Neuron);
    vote: (principal, nat, bool) ->
     (variant {
@@ -54,6 +60,7 @@ type Self =
 type Proposal = 
  record {
    endTime: int;
+   minTokenRequire: nat;
    name: text;
    startTime: int;
    state: bool;
@@ -61,6 +68,7 @@ type Proposal =
            accept: float64;
            reject: float64;
          };
+   votingPowerToPass: float64;
  };
 type NeuronStatus = 
  variant {

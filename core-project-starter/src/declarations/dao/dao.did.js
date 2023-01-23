@@ -12,11 +12,13 @@ export const idlFactory = ({ IDL }) => {
     'token_staking' : IDL.Int,
   });
   const Proposal = IDL.Record({
+    'votingPowerToPass' : IDL.Float64,
     'startTime' : IDL.Int,
     'endTime' : IDL.Int,
     'name' : IDL.Text,
     'vote' : IDL.Record({ 'reject' : IDL.Float64, 'accept' : IDL.Float64 }),
     'state' : IDL.Bool,
+    'minTokenRequire' : IDL.Nat,
   });
   const Vote = IDL.Record({
     'principal' : IDL.Principal,
@@ -65,11 +67,17 @@ export const idlFactory = ({ IDL }) => {
         ],
         ['query'],
       ),
+    'modify_parameters' : IDL.Func(
+        [IDL.Nat, IDL.Nat, IDL.Float64],
+        [IDL.Variant({ 'Ok' : Proposal, 'Err' : IDL.Text })],
+        [],
+      ),
     'submit_proposal' : IDL.Func(
         [Proposal],
         [IDL.Variant({ 'Ok' : Proposal, 'Err' : IDL.Text })],
         [],
       ),
+    'switchQuadraticMode' : IDL.Func([], [IDL.Bool], []),
     'update_neuron' : IDL.Func([IDL.Principal, Neuron], [Neuron], []),
     'vote' : IDL.Func(
         [IDL.Principal, IDL.Nat, IDL.Bool],

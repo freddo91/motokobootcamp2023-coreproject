@@ -26,9 +26,6 @@
   </div>
 
   <footer>
-    <p class="twitterfoot">
-      by <a href="https://twitter.com/iriasviel">Iri</a>
-    </p>
   </footer>
 </div>
 

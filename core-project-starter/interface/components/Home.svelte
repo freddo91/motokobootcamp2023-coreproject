@@ -128,8 +128,8 @@
     if (!ledger) {
       return null
     }
-    let start = 0;
-    let length = 200;
+    let start = txIndex;
+    let length = txIndex + BigInt(50);
     let res = await ledger.get_transactions({
       length: length,
       start: start
@@ -137,7 +137,7 @@
     console.log(res.first_index)
     console.log(res.log_length)
     let total_mint = BigInt(0);
-    while (res.log_length > 0) {
+    // while (res.log_length > 0) {
       console.log("log length = " + res.log_length)
       for (const x of res.transactions) {
           
@@ -164,13 +164,13 @@
           //   total_mint += x.mint[0].amount
           // }
       }
-      start = start + 200;
-      length = length + 200;
-      res = await ledger.get_transactions({
-        length: length,
-        start: start
-      })
-    }
+    //   start = start + 50;
+    //   length = length + 50;
+    //   res = await ledger.get_transactions({
+    //     length: length,
+    //     start: start
+    //   })
+    // }
     return null;
   }
 

@@ -39,6 +39,8 @@
   <p>End time: {getDateTime(post[1].endTime)}</p>
   <p>Status: {post[1].state === true ? "Open to vote" : "Closed"}</p>
   <p>Change website text to: {post[1].name}</p>
+  <p>Token lock required to vote: {post[1].minTokenRequire}</p>
+  <p>Voting power to pass: {post[1].votingPowerToPass}</p>
   <p>
     Yes: {post[1].vote.accept}, No: {post[1].vote.reject}
   </p>

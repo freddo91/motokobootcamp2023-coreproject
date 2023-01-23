@@ -63,6 +63,8 @@ shared actor class Self() = this {
         state : Bool;
         startTime : Int;
         endTime : Int;
+        minTokenRequire : Nat;
+        votingPowerToPass : Float;
     };
 
     system func preupgrade() {
@@ -93,12 +95,14 @@ shared actor class Self() = this {
             state = true;
             startTime = p.startTime;
             endTime = p.endTime;
+            minTokenRequire = p.minTokenRequire;
+            votingPowerToPass = p.votingPowerToPass;
         };
         proposals.put(proposal_id, proposal);
         return #Ok(p);
     };
 
-    private func create_proposal(name : Text, startTime : Int, endTime : Int) : Proposal {
+    private func create_proposal(name : Text, startTime : Int, endTime : Int, minToken : Nat, passVotingPower: Float) : Proposal {
         return {
             name = name;
             vote = {
@@ -108,6 +112,8 @@ shared actor class Self() = this {
             state = true;
             startTime = startTime;
             endTime = endTime;
+            minTokenRequire = minToken;
+            votingPowerToPass = passVotingPower;
         };
     };
 
@@ -119,7 +125,7 @@ shared actor class Self() = this {
         return Iter.toArray(proposals.entries());
     };
 
-    private func update_proposal(id: Nat, name : Text, accept : Float, reject : Float, state : Bool, startTime : Int, endTime : Int) : async Proposal {
+    private func update_proposal(id: Nat, name : Text, accept : Float, reject : Float, state : Bool, startTime : Int, endTime : Int, minToken : Nat, passVotingPower: Float) : async Proposal {
         var proposal : Proposal = {
             name = name;
             vote = {
@@ -129,6 +135,8 @@ shared actor class Self() = this {
             state = state;
             startTime = startTime;
             endTime = endTime;
+            minTokenRequire = minToken;
+            votingPowerToPass = passVotingPower;
         };
         proposals.put(id, proposal);
         return proposal;
@@ -182,17 +190,6 @@ shared actor class Self() = this {
         return Float.fromInt(neuron.token_staking);
     };
 
-    private func voting_power_calculate(p: Principal) : Float {
-        switch(neurons.get(p)) {
-            case (?neuron) {
-                let voting_power = token_voting_calculate(neuron) * dissolve_delay_bonus(neuron) * age_bonus(neuron);
-                return voting_power;
-            };
-            case _ {
-                return Float.fromInt(0);
-            };
-        };
-    };
 
     public shared(msg) func vote(principal: Principal, proposal_id : Nat, yes_or_no : Bool) : async {#Ok : (Float, Float); #Err : Text} {
         let caller = getPriorityCaller(msg.caller, principal);
@@ -204,8 +201,18 @@ shared actor class Self() = this {
                 if (p.state == false) {
                     return #Err("Proposal not allow to vote");
                 };
-                let voting_power = voting_power_calculate(caller);
-
+                var voting_power : Float = 0;
+                switch(neurons.get(caller)) {
+                    case (?neuron) {
+                        if (neuron.token_staking < p.minTokenRequire) {
+                            return #Err("Token lock amount not enough to vote");
+                        };
+                        voting_power := token_voting_calculate(neuron) * dissolve_delay_bonus(neuron) * age_bonus(neuron);
+                    };
+                    case _ {
+                        return #Err("Need create neuron to vote");
+                    };
+                };
                 // put vote
                 let vote : Vote = {
                     principal = caller;
@@ -228,7 +235,7 @@ shared actor class Self() = this {
                 proposals.put(proposal_id, verified_proposal);
                 
                 //
-                if (verified_proposal.vote.accept >= 100 or (verified_proposal.vote.accept >= verified_proposal.vote.reject and (Time.now()/1000000) >= verified_proposal.endTime)) {
+                if (verified_proposal.state == false and verified_proposal.vote.accept >= verified_proposal.vote.reject) {
                     await webpage.set_title(p.name);
                 };
                 return #Ok((proposal.vote.accept, proposal.vote.reject));
@@ -274,11 +281,13 @@ shared actor class Self() = this {
             state = p.state;
             startTime = p.startTime;
             endTime = p.endTime;
+            minTokenRequire = p.minTokenRequire;
+            votingPowerToPass = p.votingPowerToPass;
         };
     };
 
     private func verify_proposal_state(p: Proposal) : Proposal {
-        if (p.vote.accept >= 100 or p.vote.reject >= 100 or (Time.now()/1000000) >= p.endTime) {
+        if (p.vote.accept >= p.votingPowerToPass or p.vote.reject >= p.votingPowerToPass or (Time.now()/1000000) >= p.endTime) {
             return {
                 name = p.name;
                 vote = {
@@ -288,6 +297,8 @@ shared actor class Self() = this {
                 state = false;
                 startTime = p.startTime;
                 endTime = p.endTime;
+                minTokenRequire = p.minTokenRequire;
+                votingPowerToPass = p.votingPowerToPass;
             };
         };
         return p;        
@@ -362,7 +373,7 @@ shared actor class Self() = this {
         switch(neurons.get(caller)) {
             case (?neuron) {
                 return {
-                    vote_power = voting_power_calculate(caller);
+                    vote_power = token_voting_calculate(neuron) * dissolve_delay_bonus(neuron) * age_bonus(neuron);
                     token_num = token_voting_calculate(neuron);
                     dissolve_delay = dissolve_delay_bonus(neuron);
                     age = age_bonus(neuron);
@@ -422,5 +433,39 @@ shared actor class Self() = this {
 
     public func get_votes(proposal_id : Nat) : async ?[Vote] {
         return votes.get(proposal_id);
+    };
+
+    public func modify_parameters(proposal_id : Nat, numToken : Nat, votingPower : Float) : async {#Ok : Proposal; #Err : Text} {
+        switch (proposals.get(proposal_id)) {
+            case (?p) {
+                var proposal : Proposal = {
+                    name = p.name;
+                    vote = {
+                        accept = 0;
+                        reject = 0;
+                    };
+                    state = true;
+                    startTime = p.startTime;
+                    endTime = p.endTime;
+                    minTokenRequire = numToken;
+                    votingPowerToPass = votingPower;
+                };
+                proposals.put(proposal_id, proposal);
+                return #Ok(proposal);
+            };
+            case (_) {
+                return #Err("Proposal not exist");
+            };
+        };
+        
+    };
+
+    public func switchQuadraticMode() : async Bool {
+        if (quadratic_voting) {
+            quadratic_voting := false;
+            return quadratic_voting;
+        };
+        quadratic_voting := true;
+        return quadratic_voting;
     };
 };
