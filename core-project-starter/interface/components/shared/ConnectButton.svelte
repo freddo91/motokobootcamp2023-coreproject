@@ -21,7 +21,7 @@
       subaccount : []
     })
     console.log(res)
-    return res;
+    return res / BigInt(100000000);
   }
 </script>
 
@@ -30,7 +30,7 @@
     <h1 class="slogan">Loading...</h1>
     {:then res}
     <p style="color: white">
-      Login successfully! Current balances: {res}
+      Login successfully! Current balances: {res} MB token
     </p>
     {:catch error}
       <p style="color: red">{error.message}</p>

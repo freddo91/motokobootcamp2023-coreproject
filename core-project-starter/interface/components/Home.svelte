@@ -17,13 +17,44 @@
 		{ id: 8, text: `8 years` }
 	];
   let selected;
-  let tokens = BigInt(100);
+  let tokens = 100;
 
   let promise = getNeuron()
+  let sendTokenState = false
 
   function handleSubmit() {
 		alert(`${selected.id} You staking (${selected.text})"`);
 	}
+
+  async function transferMB() {
+    if (!principal) {
+      return 0
+    }
+    let ledger = get(ledgerActor)
+    if (!ledger) {
+      return 0
+    }
+    let params = {
+      amount: tokens * 100000000,
+      created_at_time: [Date.now() * 1_000_000],
+      fee: [1_000_000],
+      from_subaccount: Array.from(new ArrayBuffer(0)),
+      memo: [],
+      to: {
+        owner: Principal.fromText("uyc5q-dqaaa-aaaak-aaima-cai"),
+        subaccount: Array.from(new ArrayBuffer(0))
+      },
+    }
+    // console.log(params)
+    sendTokenState = true
+    let res = await ledger.icrc1_transfer(params)
+    sendTokenState = false
+    // console.log(res)
+    if (res.ok) {
+      return res.ok
+    }
+    return 0
+  }
 
   async function dissolveNeuron() {
     if (!principal) {
@@ -66,6 +97,16 @@
     if (!dao) {
       return 
     }
+
+    let x = await transferMB()
+    if (x <= 0) {
+      return
+    }
+    let tx = await getTransactions(x)
+    if (tx == null) {
+      return
+    }
+    console.log("tx found tx id=" + x)
     let dissolve_delay = 24 * 60 * 60 * 1000
     if (selected.id === 0) {
       dissolve_delay = dissolve_delay * 182
@@ -76,15 +117,16 @@
     console.log(res)
     promise = getNeuron()
     return res;
+    
   }
 
-  async function getTransactions() {
+  async function getTransactions(txIndex) {
     if (!principal) {
-      return 
+      return null
     }
     let ledger = get(ledgerActor)
     if (!ledger) {
-      return 
+      return null
     }
     let start = 0;
     let length = 200;
@@ -100,25 +142,27 @@
       for (const x of res.transactions) {
           
           var dateFormat = new Date(Number(BigInt(x.timestamp) / BigInt(1000000)));
-          // if (x.kind === 'TRANSFER') {
+          if (x.kind === 'TRANSFER' && x.index === txIndex && x.transfer[0].from.owner.toString() === get(principal).toText()) {
+            // console.log(x.index)
+            // console.log(x)
+            // console.log(x.kind)
+            // console.log(x.transfer[0].amount)
+            // console.log(x.transfer[0].from.owner.toString())
+            // console.log(x.transfer[0].to.owner.toString())
+            // console.log(dateFormat)
+            return x
+          }
+
+          // if (x.kind === 'MINT' && x.mint[0].to.owner.toString() === get(principal).toText()) {
           //   console.log(x.index)
           //   console.log(x)
           //   console.log(x.kind)
-          //   console.log(x.transfer[0].amount)
-          //   console.log(x.transfer[0].from.owner.toString())
-          //   console.log(x.transfer[0].to.owner.toString())
+          //   console.log(x.mint[0].amount)
+          //   console.log(x.mint[0].to)
+          //   console.log(x.mint[0].to.owner.toString())
           //   console.log(dateFormat)
+          //   total_mint += x.mint[0].amount
           // }
-
-          if (x.kind === 'MINT' && x.mint[0].to.owner.toString() === get(principal).toText()) {
-            console.log(x.index)
-            console.log(x)
-            console.log(x.kind)
-            console.log(x.mint[0].amount)
-            console.log(x.mint[0].to.owner.toString())
-            console.log(dateFormat)
-            total_mint += x.mint[0].amount
-          }
       }
       start = start + 200;
       length = length + 200;
@@ -127,7 +171,7 @@
         start: start
       })
     }
-    return total_mint;
+    return null;
   }
 
   function getNeuronStatus(stt) {
@@ -189,9 +233,13 @@
           transactions: {getTransactions()}
         </p> -->
         {:catch error}
-          {#await getTransactions()}
+          <!-- {#await getTransactions()}
           <h1 class="slogan">Loading...</h1>
           {:then res1}
+          {:catch error}
+            <p style="color: red">{error.message}</p>
+          {/await} -->
+
             <form on:submit|preventDefault={createNeuron} style="background-color: yellowgreen;">
               <div>
                 <fieldset>
@@ -212,15 +260,13 @@
                   </table>
                 </fieldset>
                 <div>
-                  <button disabled={tokens === 0} type=submit>
+                  <button disabled={tokens === 0 || sendTokenState} type=submit>
                     <span>Create newron</span>
                   </button>
                 </div>
               </div>
             </form>
-          {:catch error}
-            <p style="color: red">{error.message}</p>
-          {/await}
+          
           <p style="color: red">{error.message}</p>
         {/await}
     {/if}
