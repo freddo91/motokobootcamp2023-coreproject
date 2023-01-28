@@ -6,7 +6,7 @@ import { HttpAgent, Actor } from "@dfinity/agent"
 
 //TODO : Add your mainnet id whenever you have deployed on the IC
 const daoCanisterId = 
-  process.env.NODE_ENV === "development" ? "sbzkb-zqaaa-aaaaa-aaaiq-cai" : "rvpd5-iqaaa-aaaaj-qazsa-cai"
+  process.env.NODE_ENV === "development" ? "qhbym-qaaaa-aaaaa-aaafq-cai" : "uyc5q-dqaaa-aaaak-aaima-cai"
 
 const ledgerCanisterId = 
   process.env.NODE_ENV === "development" ? "db3eq-6iaaa-aaaah-abz6a-cai" : "db3eq-6iaaa-aaaah-abz6a-cai"
@@ -19,14 +19,16 @@ export async function plugConnection() {
     throw new Error("User denied the connection")
   }
 
-    // await window.ic.plug.createAgent({ whitelist, host: "https://boundary.ic0.app/" })
-    // agent = window.ic.plug.agent;
+
 
   const p = await window.ic.plug.agent.getPrincipal()
 
   const agent = new HttpAgent({
     host: process.env.NODE_ENV === "development" ? "http://localhost:8000" : "https://ic0.app",
   });
+
+    // await window.ic.plug.createAgent({ whitelist, host: "https://boundary.ic0.app/" })
+    // agent = window.ic.plug.agent;
 
   if (process.env.NODE_ENV === "development") {
     agent.fetchRootKey();
@@ -37,9 +39,14 @@ export async function plugConnection() {
     canisterId: daoCanisterId,
   });
 
-  const agentProduction = new HttpAgent({
-    host: "https://ic0.app",
-  });
+  // const actor = await window.ic.plug.createActor({
+  //   canisterId: daoCanisterId,
+  //   interfaceFactory: idlFactoryDAO,
+  // });
+
+  // const agentProduction = new HttpAgent({
+  //   host: "https://ic0.app",
+  // });
 
   const actorLedger = await window.ic.plug.createActor({
     canisterId: ledgerCanisterId,
